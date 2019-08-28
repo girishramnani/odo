@@ -1934,11 +1934,21 @@ func (c *Client) DisplayDeploymentConfigLog(deploymentConfigName string, followL
 	return nil
 }
 
+func (c *Client) DeleteDeploymentConfigs(labels map[string]string) error {
+	selector := util.ConvertLabelsToSelector(labels)
+	glog.V(4).Infof("Selector used for deletion: %s", selector)
+
+	err := c.appsClient.DeploymentConfigs(c.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return errors.New("unable to delete deploymentconfig")
+	}
+}
+
 // Delete takes labels as a input and based on it, deletes respective resource
 func (c *Client) Delete(labels map[string]string) error {
 	// convert labels to selector
 	selector := util.ConvertLabelsToSelector(labels)
-	glog.V(4).Infof("Selectors used for deletion: %s", selector)
+	glog.V(4).Infof("Selector used for deletion: %s", selector)
 
 	var errorList []string
 	// Delete DeploymentConfig

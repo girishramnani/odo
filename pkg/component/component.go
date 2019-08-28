@@ -280,7 +280,7 @@ func Delete(client *occlient.Client, componentName string, applicationName strin
 	defer s.End(false)
 
 	labels := componentlabels.GetLabels(componentName, applicationName, false)
-	err := client.Delete(labels)
+	err := client.DeleteDeploymentConfigs(labels)
 	if err != nil {
 		return errors.Wrapf(err, "error deleting component %s", componentName)
 	}
