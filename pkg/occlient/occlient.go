@@ -1938,7 +1938,10 @@ func (c *Client) DeleteDeploymentConfigs(labels map[string]string) error {
 	selector := util.ConvertLabelsToSelector(labels)
 	glog.V(4).Infof("Selector used for deletion: %s", selector)
 
-	err := c.appsClient.DeploymentConfigs(c.Namespace).DeleteCollection(&metav1.DeleteOptions{}, metav1.ListOptions{LabelSelector: selector})
+	background := metav1.DeletePropagationBackground
+	err := c.appsClient.DeploymentConfigs(c.Namespace).DeleteCollection(&metav1.DeleteOptions{
+		PropagationPolicy: &background,
+	}, metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return errors.New("unable to delete deploymentconfig")
 	}
