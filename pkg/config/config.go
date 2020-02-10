@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -26,7 +27,12 @@ const (
 	localConfigAPIVersion = "odo.openshift.io/v1alpha1"
 	// DefaultDebugPort is the default port used for debugging on remote pod
 	DefaultDebugPort = 5858
+
+	LinkComponent LinkType = "Component"
+	LinkService   LinkType = "Service"
 )
+
+type LinkType string
 
 type ComponentStorageSettings struct {
 	Name string `yaml:"Name,omitempty"`
@@ -78,6 +84,8 @@ type ComponentSettings struct {
 	Envs EnvVarList `yaml:"Envs,omitempty"`
 
 	URL *[]ConfigURL `yaml:"Url,omitempty"`
+
+	LinksWith *LinkList `yaml:"LinksWith, omitempty"`
 }
 
 // ConfigURL holds URL related information
@@ -86,6 +94,46 @@ type ConfigURL struct {
 	Name string `yaml:"Name,omitempty"`
 	// Port number for the url of the component, required in case of components which expose more than one service port
 	Port int `yaml:"Port,omitempty"`
+}
+
+type LinkList []Link
+
+func (ll *LinkList) AddLink(name, application string, port int, isService bool) error {
+
+	link := Link{
+		Name:        name,
+		Application: application,
+		Port:        port,
+	}
+
+	if isService {
+		link.Type = LinkService
+	} else {
+		link.Type = LinkComponent
+	}
+	if ll.HasLink(link) {
+		return errors.New("A link with similar parameters already present in config")
+	}
+
+	*ll = append(*ll, link)
+
+	return nil
+}
+
+func (ll *LinkList) HasLink(otherLink Link) bool {
+	for _, link := range *ll {
+		if reflect.DeepEqual(link, otherLink) {
+			return true
+		}
+	}
+	return false
+}
+
+type Link struct {
+	Name        string   `yaml:"Name"`
+	Type        LinkType `yaml:"Type"`
+	Application string   `yaml:"Application"`
+	Port        int      `yaml:"Port"`
 }
 
 // LocalConfig holds all the config relavent to a specific Component.
@@ -267,6 +315,18 @@ func (lci *LocalConfigInfo) SetConfiguration(parameter string, value interface{}
 	}
 	return errors.Errorf("unknown parameter :'%s' is not a parameter in local odo config", parameter)
 
+}
+
+func (lci *LocalConfigInfo) AddLink(name, application string, port int, isService bool) error {
+	if lci.componentSettings.LinksWith == nil {
+		lci.componentSettings.LinksWith = &LinkList{}
+	}
+
+	if err := lci.componentSettings.LinksWith.AddLink(name, application, port, isService); err != nil {
+		return err
+	}
+
+	return lci.writeToFile()
 }
 
 // DeleteConfigDirIfEmpty Deletes the config directory if its empty
@@ -533,6 +593,13 @@ func (lc *LocalConfig) GetStorage() []ComponentStorageSettings {
 		return []ComponentStorageSettings{}
 	}
 	return *lc.componentSettings.Storage
+}
+
+func (lc *LocalConfig) GetLinksWith() LinkList {
+	if lc.componentSettings.LinksWith == nil {
+		return LinkList{}
+	}
+	return *lc.componentSettings.LinksWith
 }
 
 // GetEnvs returns the Envs, returns empty if nil

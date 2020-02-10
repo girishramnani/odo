@@ -7,7 +7,6 @@ import (
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
 
 	appCmd "github.com/openshift/odo/pkg/odo/cli/application"
-	projectCmd "github.com/openshift/odo/pkg/odo/cli/project"
 	"github.com/openshift/odo/pkg/odo/util/completion"
 
 	"github.com/openshift/odo/pkg/odo/util"
@@ -67,7 +66,6 @@ DB_PASSWORD=secret`
 
 // LinkOptions encapsulates the options for the odo link command
 type LinkOptions struct {
-	waitForTarget    bool
 	componentContext string
 	*commonLinkOptions
 }
@@ -82,16 +80,11 @@ func NewLinkOptions() *LinkOptions {
 // Complete completes LinkOptions after they've been created
 func (o *LinkOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
 	err = o.complete(name, cmd, args)
-	o.operation = o.Client.LinkSecret
 	return err
 }
 
 // Validate validates the LinkOptions based on completed values
 func (o *LinkOptions) Validate() (err error) {
-	err = o.validate(o.waitForTarget)
-	if err != nil {
-		return err
-	}
 
 	alreadyLinkedSecretNames, err := component.GetComponentLinkedSecretNames(o.Client, o.Component(), o.Application)
 	if err != nil {
@@ -111,7 +104,8 @@ func (o *LinkOptions) Validate() (err error) {
 
 // Run contains the logic for the odo link command
 func (o *LinkOptions) Run() (err error) {
-	return o.run()
+
+	return
 }
 
 // NewCmdLink implements the link odo command
@@ -119,7 +113,7 @@ func NewCmdLink(name, fullName string) *cobra.Command {
 	o := NewLinkOptions()
 
 	linkCmd := &cobra.Command{
-		Use:         fmt.Sprintf("%s <service> --component [component] OR %s <component> --component [component]", name, name),
+		Use:         fmt.Sprintf("%s <service>  OR %s <component>", name, name),
 		Short:       "Link component to a service or component",
 		Long:        linkLongDesc,
 		Example:     fmt.Sprintf(linkExample, fullName),
@@ -131,16 +125,10 @@ func NewCmdLink(name, fullName string) *cobra.Command {
 	}
 
 	linkCmd.PersistentFlags().StringVar(&o.port, "port", "", "Port of the backend to which to link")
-	linkCmd.PersistentFlags().BoolVarP(&o.wait, "wait", "w", false, "If enabled the link will return only when the component is fully running after the link is created")
-	linkCmd.PersistentFlags().BoolVar(&o.waitForTarget, "wait-for-target", false, "If enabled, the link command will wait for the service to be provisioned (has no effect when linking to a component)")
 
 	linkCmd.SetUsageTemplate(util.CmdUsageTemplate)
-	//Adding `--project` flag
-	projectCmd.AddProjectFlag(linkCmd)
 	//Adding `--application` flag
 	appCmd.AddApplicationFlag(linkCmd)
-	//Adding `--component` flag
-	AddComponentFlag(linkCmd)
 	//Adding context flag
 	genericclioptions.AddContextFlag(linkCmd, &o.componentContext)
 
