@@ -2,9 +2,12 @@ package component
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/openshift/odo/pkg/component"
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
+	"github.com/pkg/errors"
 
 	appCmd "github.com/openshift/odo/pkg/odo/cli/application"
 	"github.com/openshift/odo/pkg/odo/util/completion"
@@ -67,6 +70,7 @@ DB_PASSWORD=secret`
 // LinkOptions encapsulates the options for the odo link command
 type LinkOptions struct {
 	componentContext string
+	linkPort         int
 	*commonLinkOptions
 }
 
@@ -80,6 +84,11 @@ func NewLinkOptions() *LinkOptions {
 // Complete completes LinkOptions after they've been created
 func (o *LinkOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
 	err = o.complete(name, cmd, args)
+	port, err := strconv.Atoi(o.portStr)
+	if err != nil {
+		return err
+	}
+	o.linkPort = port
 	return err
 }
 
@@ -104,7 +113,12 @@ func (o *LinkOptions) Validate() (err error) {
 
 // Run contains the logic for the odo link command
 func (o *LinkOptions) Run() (err error) {
+	if err := o.LocalConfigInfo.AddLink(o.suppliedName, o.Application, o.linkPort, o.isTargetAService); err != nil {
+		return errors.Wrap(err, "error while linking")
+	}
 
+	log.Successf("Added link for %v in the config", o.suppliedName)
+	log.Italic("\nPlease use `odo push` command to create the link")
 	return
 }
 
@@ -124,7 +138,7 @@ func NewCmdLink(name, fullName string) *cobra.Command {
 		},
 	}
 
-	linkCmd.PersistentFlags().StringVar(&o.port, "port", "", "Port of the backend to which to link")
+	linkCmd.PersistentFlags().StringVar(&o.portStr, "port", "", "Port of the backend to which to link")
 
 	linkCmd.SetUsageTemplate(util.CmdUsageTemplate)
 	//Adding `--application` flag

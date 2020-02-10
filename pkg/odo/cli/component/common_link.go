@@ -17,7 +17,7 @@ import (
 
 type commonLinkOptions struct {
 	wait             bool
-	port             string
+	portStr          string
 	secretName       string
 	isTargetAService bool
 
@@ -67,7 +67,7 @@ func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []str
 
 		o.secretName = suppliedName
 	} else {
-		secretName, err := secret.DetermineSecretName(o.Client, suppliedName, o.Application, o.port)
+		secretName, err := secret.DetermineSecretName(o.Client, suppliedName, o.Application, o.portStr)
 		if err != nil {
 			return err
 		}

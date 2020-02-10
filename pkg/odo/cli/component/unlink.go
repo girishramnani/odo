@@ -60,7 +60,7 @@ func (o *UnlinkOptions) Complete(name string, cmd *cobra.Command, args []string)
 
 // Validate validates the UnlinkOptions based on completed values
 func (o *UnlinkOptions) Validate() (err error) {
-	return o.validate(false)
+	return nil
 }
 
 // Run contains the logic for the odo link command
@@ -84,7 +84,7 @@ func NewCmdUnlink(name, fullName string) *cobra.Command {
 		},
 	}
 
-	unlinkCmd.PersistentFlags().StringVar(&o.port, "port", "", "Port of the backend to which to unlink")
+	unlinkCmd.PersistentFlags().StringVar(&o.portStr, "port", "", "Port of the backend to which to unlink")
 	unlinkCmd.PersistentFlags().BoolVarP(&o.wait, "wait", "w", false, "If enabled the link will return only when the component is fully running after the link is deleted")
 
 	unlinkCmd.SetUsageTemplate(util.CmdUsageTemplate)
