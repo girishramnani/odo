@@ -129,6 +129,23 @@ func (ll *LinkList) HasLink(otherLink Link) bool {
 	return false
 }
 
+func (ll *LinkList) RemoveLink(otherLink Link) error {
+
+	delIndex := -1
+	for i, link := range *ll {
+		if reflect.DeepEqual(link, otherLink) {
+			delIndex = i
+			break
+		}
+	}
+	if delIndex != -1 {
+		*ll = append((*ll)[:delIndex], (*ll)[delIndex:]...)
+		return nil
+	} else {
+		return errors.New("The link is not present in local config")
+	}
+}
+
 type Link struct {
 	Name        string   `yaml:"Name"`
 	Type        LinkType `yaml:"Type"`
@@ -327,6 +344,24 @@ func (lci *LocalConfigInfo) AddLink(name, application string, port int, isServic
 	}
 
 	return lci.writeToFile()
+}
+
+func (lci *LocalConfigInfo) RemoveLink(name, application string, port int, isService bool) error {
+	link := Link{
+		Name:        name,
+		Application: application,
+		Port:        port,
+	}
+
+	if isService {
+		link.Type = LinkService
+	} else {
+		link.Type = LinkComponent
+	}
+	if err := lci.componentSettings.LinksWith.RemoveLink(link); err != nil {
+		return err
+	}
+	return nil
 }
 
 // DeleteConfigDirIfEmpty Deletes the config directory if its empty

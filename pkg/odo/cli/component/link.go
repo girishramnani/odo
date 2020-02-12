@@ -2,7 +2,6 @@ package component
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/openshift/odo/pkg/component"
 	"github.com/openshift/odo/pkg/log"
@@ -70,7 +69,6 @@ DB_PASSWORD=secret`
 // LinkOptions encapsulates the options for the odo link command
 type LinkOptions struct {
 	componentContext string
-	linkPort         int
 	*commonLinkOptions
 }
 
@@ -83,13 +81,8 @@ func NewLinkOptions() *LinkOptions {
 
 // Complete completes LinkOptions after they've been created
 func (o *LinkOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
-	err = o.complete(name, cmd, args)
-	port, err := strconv.Atoi(o.portStr)
-	if err != nil {
-		return err
-	}
-	o.linkPort = port
-	return err
+	return o.complete(name, cmd, args)
+
 }
 
 // Validate validates the LinkOptions based on completed values
@@ -114,7 +107,7 @@ func (o *LinkOptions) Validate() (err error) {
 // Run contains the logic for the odo link command
 func (o *LinkOptions) Run() (err error) {
 	if err := o.LocalConfigInfo.AddLink(o.suppliedName, o.Application, o.linkPort, o.isTargetAService); err != nil {
-		return errors.Wrap(err, "error while linking")
+		return errors.Wrap(err, "error while adding link to the local config")
 	}
 
 	log.Successf("Added link for %v in the config", o.suppliedName)

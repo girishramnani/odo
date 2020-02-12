@@ -2,13 +2,13 @@ package component
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/golang/glog"
 	"github.com/openshift/odo/pkg/component"
 	componentlabels "github.com/openshift/odo/pkg/component/labels"
 	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
-	"github.com/openshift/odo/pkg/secret"
 	svc "github.com/openshift/odo/pkg/service"
 	"github.com/openshift/odo/pkg/util"
 	"github.com/spf13/cobra"
@@ -20,10 +20,9 @@ type commonLinkOptions struct {
 	portStr          string
 	secretName       string
 	isTargetAService bool
-
-	suppliedName  string
-	operation     func(secretName, componentName, applicationName string) error
-	operationName string
+	linkPort         int
+	operationName    string
+	suppliedName     string
 
 	*genericclioptions.Context
 }
@@ -35,10 +34,15 @@ func newCommonLinkOptions() *commonLinkOptions {
 // Complete completes LinkOptions after they've been created
 func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []string) (err error) {
 	o.operationName = name
-
 	suppliedName := args[0]
 	o.suppliedName = suppliedName
 	o.Context = genericclioptions.NewContextCreatingAppIfNeeded(cmd)
+
+	port, err := strconv.Atoi(o.portStr)
+	if err != nil {
+		return err
+	}
+	o.linkPort = port
 
 	svcExists, err := svc.SvcExists(o.Client, suppliedName, o.Application)
 	if err != nil {
@@ -54,7 +58,7 @@ func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []str
 
 	if !cmpExists && !svcExists {
 		// as there is a chance that the service or component doesn't exist yet
-		log.Warningf("Neither a service nor a component named %s could be located. Link will be created on `odo push` if the service/component exists.", suppliedName, o.operationName)
+		log.Warningf("Neither a service nor a component named %s could be located. Links will be updated on `odo push` if the service/component exists.", suppliedName, o.operationName)
 		return
 	}
 
@@ -65,13 +69,6 @@ func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []str
 			glog.V(4).Infof("Both a service and component with name %s - assuming a(n) %s to the service is required", suppliedName, o.operationName)
 		}
 
-		o.secretName = suppliedName
-	} else {
-		secretName, err := secret.DetermineSecretName(o.Client, suppliedName, o.Application, o.portStr)
-		if err != nil {
-			return err
-		}
-		o.secretName = secretName
 	}
 
 	return nil
@@ -83,7 +80,6 @@ func (o *commonLinkOptions) run() (err error) {
 		linkType = "Service"
 	}
 
-	err = o.operation(o.secretName, o.Component(), o.Application)
 	if err != nil {
 		return err
 	}

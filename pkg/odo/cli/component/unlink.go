@@ -3,7 +3,9 @@ package component
 import (
 	"fmt"
 
+	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
+	"github.com/pkg/errors"
 
 	appCmd "github.com/openshift/odo/pkg/odo/cli/application"
 	projectCmd "github.com/openshift/odo/pkg/odo/cli/project"
@@ -54,7 +56,6 @@ func NewUnlinkOptions() *UnlinkOptions {
 // Complete completes UnlinkOptions after they've been created
 func (o *UnlinkOptions) Complete(name string, cmd *cobra.Command, args []string) (err error) {
 	err = o.complete(name, cmd, args)
-	o.operation = o.Client.UnlinkSecret
 	return err
 }
 
@@ -65,7 +66,13 @@ func (o *UnlinkOptions) Validate() (err error) {
 
 // Run contains the logic for the odo link command
 func (o *UnlinkOptions) Run() (err error) {
-	return o.run()
+	if err := o.LocalConfigInfo.AddLink(o.suppliedName, o.Application, o.linkPort, o.isTargetAService); err != nil {
+		return errors.Wrap(err, "error while adding link to the local config")
+	}
+
+	log.Successf("Removed link for %v in the config", o.suppliedName)
+	log.Italic("\nPlease use `odo push` command to delete the link")
+	return
 }
 
 // NewCmdUnlink implements the link odo command
@@ -85,7 +92,6 @@ func NewCmdUnlink(name, fullName string) *cobra.Command {
 	}
 
 	unlinkCmd.PersistentFlags().StringVar(&o.portStr, "port", "", "Port of the backend to which to unlink")
-	unlinkCmd.PersistentFlags().BoolVarP(&o.wait, "wait", "w", false, "If enabled the link will return only when the component is fully running after the link is deleted")
 
 	unlinkCmd.SetUsageTemplate(util.CmdUsageTemplate)
 	//Adding `--project` flag
