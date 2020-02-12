@@ -9,6 +9,7 @@ import (
 	componentlabels "github.com/openshift/odo/pkg/component/labels"
 	"github.com/openshift/odo/pkg/log"
 	"github.com/openshift/odo/pkg/odo/genericclioptions"
+	"github.com/openshift/odo/pkg/secret"
 	svc "github.com/openshift/odo/pkg/service"
 	"github.com/openshift/odo/pkg/util"
 	"github.com/spf13/cobra"
@@ -37,8 +38,19 @@ func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []str
 	suppliedName := args[0]
 	o.suppliedName = suppliedName
 	o.Context = genericclioptions.NewContextCreatingAppIfNeeded(cmd)
+	portStr := o.portStr
+	if portStr == "" {
 
-	port, err := strconv.Atoi(o.portStr)
+		// when the user doesn't provide the port we try to determine a port outselves or error out
+		_, port, err := secret.DetermineSecretName(o.Client, suppliedName, o.Application, o.portStr)
+		if err != nil {
+			return err
+		}
+
+		portStr = port
+	}
+
+	port, err := strconv.Atoi(portStr)
 	if err != nil {
 		return err
 	}
@@ -57,9 +69,8 @@ func (o *commonLinkOptions) complete(name string, cmd *cobra.Command, args []str
 	}
 
 	if !cmpExists && !svcExists {
-		// as there is a chance that the service or component doesn't exist yet
-		log.Warningf("Neither a service nor a component named %s could be located. Links will be updated on `odo push` if the service/component exists.", suppliedName, o.operationName)
-		return
+		// we fail if service or component with the name provided doesn't exist
+		return fmt.Errorf("neither a service nor a component named %s could be located. Links will be updated on `odo push` if the service/component exists", suppliedName)
 	}
 
 	o.isTargetAService = svcExists

@@ -101,6 +101,7 @@ func (o *LinkOptions) Validate() (err error) {
 			return fmt.Errorf("Component %s has previously been linked to %s %s", o.Component(), targetType, o.suppliedName)
 		}
 	}
+
 	return
 }
 

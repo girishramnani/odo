@@ -85,7 +85,7 @@ type ComponentSettings struct {
 
 	URL *[]ConfigURL `yaml:"Url,omitempty"`
 
-	LinksWith *LinkList `yaml:"LinksWith, omitempty"`
+	LinksWith *LinkList `yaml:"LinksWith,omitempty"`
 }
 
 // ConfigURL holds URL related information
@@ -139,11 +139,10 @@ func (ll *LinkList) RemoveLink(otherLink Link) error {
 		}
 	}
 	if delIndex != -1 {
-		*ll = append((*ll)[:delIndex], (*ll)[delIndex:]...)
+		*ll = append((*ll)[:delIndex], (*ll)[delIndex+1:]...)
 		return nil
-	} else {
-		return errors.New("The link is not present in local config")
 	}
+	return errors.New("The link is not present in local config")
 }
 
 type Link struct {
@@ -361,7 +360,7 @@ func (lci *LocalConfigInfo) RemoveLink(name, application string, port int, isSer
 	if err := lci.componentSettings.LinksWith.RemoveLink(link); err != nil {
 		return err
 	}
-	return nil
+	return lci.writeToFile()
 }
 
 // DeleteConfigDirIfEmpty Deletes the config directory if its empty

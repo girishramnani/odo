@@ -61,12 +61,13 @@ func (o *UnlinkOptions) Complete(name string, cmd *cobra.Command, args []string)
 
 // Validate validates the UnlinkOptions based on completed values
 func (o *UnlinkOptions) Validate() (err error) {
+
 	return nil
 }
 
 // Run contains the logic for the odo link command
 func (o *UnlinkOptions) Run() (err error) {
-	if err := o.LocalConfigInfo.AddLink(o.suppliedName, o.Application, o.linkPort, o.isTargetAService); err != nil {
+	if err := o.LocalConfigInfo.RemoveLink(o.suppliedName, o.Application, o.linkPort, o.isTargetAService); err != nil {
 		return errors.Wrap(err, "error while adding link to the local config")
 	}
 

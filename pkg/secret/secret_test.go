@@ -236,7 +236,7 @@ func TestGetServiceInstanceList(t *testing.T) {
 			return true, &tt.secretList, nil
 		})
 
-		secretName, err := DetermineSecretName(client, tt.componentName, tt.applicationName, tt.port)
+		secretName, _, err := DetermineSecretName(client, tt.componentName, tt.applicationName, tt.port)
 
 		if !tt.wantErr == (err != nil) {
 			t.Errorf("client.GetExposedPorts(imagestream imageTag) unexpected error %v, wantErr %v", err, tt.wantErr)
